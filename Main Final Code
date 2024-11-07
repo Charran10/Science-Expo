@@ -1,0 +1,148 @@
+#include <DHT.h>
+#include <LiquidCrystal_I2C.h>
+
+// DHT Sensor settings
+#define DHTPIN 2       // DHT11 data pin
+#define DHTTYPE DHT11  // DHT 11
+
+// Soil Moisture Sensor settings
+#define SOIL_MOISTURE_PIN A0 // Soil moisture sensor pin
+#define SOIL_MOISTURE_THRESHOLD 600 // Adjust based on your sensor
+
+// Pump settings
+#define PUMP_PIN 8    // Relay for water pump
+DHT dht(DHTPIN, DHTTYPE);
+
+LiquidCrystal_I2C lcd(0x27, 16, 2); // LCD setup
+unsigned long lastMillis = 0;       // Timing variable for animation
+
+void setup() {
+  dht.begin();
+  lcd.begin();          // Initialize LCD without parameters
+  lcd.backlight();      // Turn on the LCD backlight
+  
+  pinMode(PUMP_PIN, OUTPUT);
+  digitalWrite(PUMP_PIN, HIGH); // Start with pump off
+
+  startAnimation();  // Run the animation at startup
+
+  Serial.begin(9600); // Serial for debugging
+}
+
+void loop() {
+  float temperature = dht.readTemperature();
+  float humidity = dht.readHumidity();
+  int soilMoistureValue = analogRead(SOIL_MOISTURE_PIN);
+  
+  // Print soil moisture to Serial Monitor for debugging
+  Serial.print("Soil Moisture Value: ");
+  Serial.println(soilMoistureValue);
+  
+  // Display temperature and humidity on first page
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Temp: ");
+  lcd.print(temperature);
+  lcd.print("C");
+
+  lcd.setCursor(0, 1);
+  lcd.print("Humidity: ");
+  lcd.print(humidity);
+  lcd.print("%");
+  delay(3000);
+
+  // Display soil moisture on second page
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Soil Moist: ");
+  if (soilMoistureValue > SOIL_MOISTURE_THRESHOLD) {
+    lcd.print("Dry");
+  } else {
+    lcd.print("Wet");
+  }
+
+  if (soilMoistureValue > SOIL_MOISTURE_THRESHOLD) {
+    digitalWrite(PUMP_PIN, LOW);  // Turn pump on
+    lcd.setCursor(0, 1);
+    lcd.print("Pump: ON");
+    delay(5000);                  // Run pump for 5 seconds
+    digitalWrite(PUMP_PIN, HIGH); // Turn pump off
+  } else {
+    lcd.setCursor(0, 1);
+    lcd.print("Pump: OFF");
+  }
+  delay(3000);
+}
+
+void startAnimation() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Starting...");
+  delay(1000);
+
+  // Loading bar animation
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Loading: ");
+  for (int i = 0; i < 16; i++) {
+    lcd.setCursor(i, 1);
+    lcd.print((char)255); // Solid block character
+    delay(150);  // Adjust delay for speed
+  }
+  
+  // Fade-In Text Animation (Slowly reveal)
+  fadeInText("Welcome to", 0, 0);
+  fadeInText("Plant Monitor", 0, 1);
+  delay(1000);
+  
+  // Scrolling "Blast Efforts" Text Animation
+  scrollingText("Blast Efforts!!!");
+
+  // Circular Progress Bar
+  circularProgressBar();
+
+  delay(500);  // Hold the last animation for 1 second before continuing
+}
+
+void fadeInText(String text, int col, int row) {
+  for (int i = 0; i < text.length(); i++) {
+    lcd.setCursor(col + i, row);
+    lcd.print(text.charAt(i));
+    delay(300); // Adjust speed of reveal
+  }
+}
+
+void scrollingText(String text) {
+  for (int position = 0; position < text.length() + 16; position++) {
+    lcd.clear();
+    lcd.setCursor(position - 16, 0);
+    lcd.print(text);
+    delay(200);
+  }
+}
+
+void circularProgressBar() {
+  String loading = "Loading...";
+  for (int i = 0; i < 3; i++) {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(loading);
+    lcd.setCursor(0, 1);
+    lcd.print("  *  ");
+    delay(500);
+    
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(loading);
+    lcd.setCursor(0, 1);
+    lcd.print("   * ");
+    delay(500);
+    
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(loading);
+    lcd.setCursor(0, 1);
+    lcd.print("  *  ");
+    delay(500);
+  }
+}
